@@ -40,6 +40,22 @@ If you return `true`, the create option will be shown. If you return `false`, it
 {{/power-select-with-create}}
 ```
 
+  ### Allow creation of new option before search results return
+
+```hbs
+{{#power-select-with-create
+    options=countries
+    searchField="name"
+    multiple=true
+    createAsTyping=true
+    selected=selectedCountry
+    oncreate=(action "createCountry")
+    showCreateWhen=(action "hideCreateOptionOnSameName") as |country|
+}}
+  {{country.name}}
+{{/power-select-with-create}}
+```
+  
 ```js
 actions: {
   hideCreateOptionOnSameName(term) {

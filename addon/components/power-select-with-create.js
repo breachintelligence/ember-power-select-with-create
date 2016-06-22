@@ -7,7 +7,7 @@ export default Ember.Component.extend({
   tagName: '',
   layout: layout,
   matcher: defaultMatcher,
-
+  myResults: [],
   // Lifecycle hooks
   init() {
     this._super(...arguments);
@@ -35,7 +35,58 @@ export default Ember.Component.extend({
 
   // Actions
   actions: {
-    searchAndSuggest(term) {
+    typeAndSuggest(select, e){
+
+      if(!this.get('createAsTyping')){
+        return;
+      }
+      
+      // We don't want to do anything if the user is pressing the arrow keys to navigate
+      // the dropdown menu
+      if(this._isArrowKey(e)){
+        return;
+      }
+
+      // console.info(select);
+      // console.info("SearchText:" + select.searchText);
+      // console.info("KeyCode:" + e.keyCode);
+      // console.info("IsOpen: " + select.isOpen);
+      // console.info(select.highlighted);
+      // if (e.keyCode === 13 && select.isOpen && !Ember.isBlank(select.searchText)) {
+      //   console.info(select.actions);
+      //   console.info("Adding: " + select.searchText);
+      //   select.actions.choose(this.buildSuggestionForTerm(select.searchText));
+      //   return;
+      // }
+
+      Ember.run.next(this, function(){
+        let selected = this.get('selected');
+        //console.info(select.searchText);
+
+        if (!selected.includes(select.searchText) && !Ember.isBlank(select.searchText)) {
+          //console.info("Selected does not include searchText");
+          let results = select.results;
+          //console.info(results);
+          let suggestion = this.buildSuggestionForTerm(select.searchText);
+          // console.info("Adding from type: " + select.searchText);
+          // console.info(select);
+          if(results.length !== 0){
+            results.shiftObject();
+          }
+          results.unshiftObject(suggestion);
+          select.actions.highlight(suggestion);
+        }
+
+        if(Ember.isBlank(select.searchText)){
+          select.results.clear();
+          // If we don't set highlighted to undefined it appears to have a residual value
+          // which mean if the user presses enter even when the input is empty a value
+          // show up
+          Ember.set(select, 'highlighted', undefined);
+        }
+      });
+    },
+    searchAndSuggest(term, select) {
       let newOptions = this.get('optionsArray');
 
       if (term.length === 0) {
@@ -47,8 +98,10 @@ export default Ember.Component.extend({
           if (results.toArray) {
             results = results.toArray();
           }
-
-          if (this.shouldShowCreateOption(term)) {
+          // console.info("SearchText At Suggest Resolve: " + select.searchText);
+          // console.info("Term at Suggest Resolve:" + term);
+          if (!Ember.isBlank(select.searchText) && this.shouldShowCreateOption(term)) {
+            // console.info("Adding term suggestion: " + term);
             results.unshift(this.buildSuggestionForTerm(term));
           }
 
@@ -65,6 +118,7 @@ export default Ember.Component.extend({
     },
 
     selectOrCreate(selection) {
+      console.info("Select or create");
       let suggestion;
       if (this.get('multiple')) {
         suggestion = selection.filter((option) => {
@@ -107,5 +161,17 @@ export default Ember.Component.extend({
       return buildSuggestion(term);
     }
     return `Add "${term}"...`;
+  },
+
+  _isArrowKey(e){
+    if(e.keyCode === 37 || // Left Arrow
+        e.keyCode === 38 || // Up Arrow
+        e.keyCode === 39 || // Right Arrow
+        e.keyCode === 40) { // Down Arrow
+      return true;
+    }
+    return false;
   }
+
+
 });
