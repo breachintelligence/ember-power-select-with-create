@@ -1,7 +1,7 @@
 import Ember from 'ember';
 import layout from '../templates/components/power-select-with-create';
-import { filterOptions, defaultMatcher } from 'ember-power-select/utils/group-utils';
-const { computed, get } = Ember;
+import {filterOptions, defaultMatcher} from 'ember-power-select/utils/group-utils';
+const {computed, get} = Ember;
 
 export default Ember.Component.extend({
   tagName: '',
@@ -15,9 +15,11 @@ export default Ember.Component.extend({
   },
 
   // CPs
-  optionsArray: computed('options.[]', function() {
+  optionsArray: computed('options.[]', function () {
     let options = this.get('options');
-    if (!options) { return Ember.A(); }
+    if (!options) {
+      return Ember.A();
+    }
     if (options.then) {
       return options.then(value => Ember.A(value).toArray());
     } else {
@@ -25,7 +27,7 @@ export default Ember.Component.extend({
     }
   }),
 
-  powerSelectComponentName: computed('multiple', function() {
+  powerSelectComponentName: computed('multiple', function () {
     return this.get('multiple') ? 'power-select-multiple' : 'power-select';
   }),
 
@@ -40,90 +42,40 @@ export default Ember.Component.extend({
      * on what the user has already typed into the input.
      * @param select
      * @param e
-       */
+     */
     onKeyDown(select, e){
-      if(e && e.keyCode === 9 && typeof(select.highlighted) === 'object'){
+      if (e && e.keyCode === 9 /*tab*/ && typeof(select.highlighted) === 'object') {
         // needs to be an array because this is multi select
         select.actions.select([select.highlighted]);
         select.actions.close();
       }
     },
+    /**
+     * Input provides the text input by the user including if the user deletes all input
+     *
+     * @param input
+     * @param select
+       */
     onInput(input, select){
+      // console.info("onInput:[" + input + "]");
       // console.info(select);
-      // console.info(e);
-      //
-      // return;
-      //
-      // if(!this.get('createAsTyping')){
-      //   return;
-      // }
-      //
-      // // We don't want to do anything if the user is pressing the arrow keys to navigate
-      // // the dropdown menu
-      // if(this._isArrowKey(e)){
-      //   return;
-      // }
-      //
-      // console.info(e);
-
-        console.info(select);
-        console.info("Input:[" + input + "]");
-        if (Ember.isBlank(input)) {
-          console.info("Clearing Results");
-          console.info(select.results);
-          select.options.clear();
-          select.results.clear();
-          // If we don't set highlighted to undefined it appears to have a residual value
-          // which means if the user presses enter even when the input is empty a value
-          // shows up
-          Ember.set(select, 'highlighted', undefined);
-        }
-      return true;
-
-
-      //
-      // // The value of searchText always seems to be one key behind unless I wait for next
-      // Ember.run.next(this, function(){
-      //   let selected = this.get('selected');
-      //
-      //   //console.info("SearchText: " + select.searchText);
-      //
-      //
-      //   if (!selected.includes(select.searchText) && !Ember.isBlank(select.searchText)) {
-      //     let results = select.results;
-      //     let suggestion = this.buildSuggestionForTerm(select.searchText);
-      //
-      //     if(results.length !== 0){
-      //       //remove the existing suggestion
-      //       results.shiftObject();
-      //     }
-      //     //add our "suggestion" which is based off what the user has typed and highlight it
-      //     //console.info("Adding Suggestion:");
-      //     //console.info(suggestion);
-      //     results.unshiftObject(suggestion);
-      //     select.actions.highlight(suggestion);
-      //   }
-      //
-      //   if(Ember.isBlank(select.searchText)){
-      //     select.results.clear();
-      //     // If we don't set highlighted to undefined it appears to have a residual value
-      //     // which means if the user presses enter even when the input is empty a value
-      //     // shows up
-      //     Ember.set(select, 'highlighted', undefined);
-      //   }
-      // });
+      if (Ember.isBlank(input)) {
+        // console.info("Clearing Results");
+        this._clearSelect(select);
+      }
     },
     searchAndSuggest(term, select) {
-      console.info(term);
+      //console.info("[searchAndSuggest] Term: " + term);
       let newOptions = this.get('optionsArray');
 
       if (term.length === 0) {
         return newOptions;
       }
 
-
       //---------------------------
-      let selected = this.get('selected');
+      // Create typed text behavior
+      //---------------------------
+      let selected = select.selected;//this.get('selected');
       if (!selected.includes(term) && !Ember.isBlank(term)) {
         let results = select.results;
         let suggestion = this.buildSuggestionForTerm(term);
@@ -135,19 +87,12 @@ export default Ember.Component.extend({
         results.unshiftObject(suggestion);
         select.actions.highlight(suggestion);
       }
-
-      if(Ember.isBlank(term)){
-        select.results.clear();
-        // If we don't set highlighted to undefined it appears to have a residual value
-        // which means if the user presses enter even when the input is empty a value
-        // shows up
-        Ember.set(select, 'highlighted', undefined);
-      }
+      //---------------------------
+      //---------------------------
       //---------------------------
 
-
       if (this.get('search')) {
-        return Ember.RSVP.resolve(this.get('search')(term)).then((results) =>  {
+        return Ember.RSVP.resolve(this.get('search')(term)).then((results) => {
           if (results.toArray) {
             results = results.toArray();
           }
@@ -171,21 +116,16 @@ export default Ember.Component.extend({
     },
 
     selectOrCreate(selection, select) {
-      console.info("Select or create");
-      console.info(selection);
-
-
+      // console.info("Select or create");
+      // console.info(selection);
       let suggestion;
       if (this.get('multiple')) {
-        if(Array.isArray(selection) && selection.length === 0){
-          //select.options.clear();
-          select.results.clear();
-          // If we don't set highlighted to undefined it appears to have a residual value
-          // which means if the user presses enter even when the input is empty a value
-          // shows up
-          Ember.set(select, 'highlighted', undefined);
+        // This clearSelect is required because if the user clicks on the X button to remove a selected item
+        // the `oninput` callback is not called which is where we normally check to see if all suggestions
+        // should be removed
+        if (Array.isArray(selection) && selection.length === 0) {
+          this._clearSelect(select);
         }
-
         suggestion = selection.filter((option) => {
           return option.__isSuggestion__;
         })[0];
@@ -194,9 +134,9 @@ export default Ember.Component.extend({
       }
 
       if (suggestion) {
-        this.get('oncreate')(suggestion.__value__);
+        Ember.run.scheduleOnce('afterRender', this, this.get('oncreate'), suggestion.__value__);
       } else {
-        this.get('onchange')(selection);
+        Ember.run.scheduleOnce('afterRender', this, this.get('onchange'), selection);
       }
     }
   },
@@ -228,11 +168,27 @@ export default Ember.Component.extend({
     return `Add "${term}"...`;
   },
 
+  /**
+   * Clears all the options and results to give a clean slate for the
+   * input
+   *
+   * @param select
+   * @private
+   */
+  _clearSelect(select){
+    select.options.clear();
+    select.results.clear();
+    // If we don't set highlighted to undefined it appears to have a residual value
+    // which means if the user presses enter even when the input is empty a value
+    // shows up
+    Ember.set(select, 'highlighted', undefined);
+  },
+
   _isArrowKey(e){
-    if(e.keyCode === 37 || // Left Arrow
-        e.keyCode === 38 || // Up Arrow
-        e.keyCode === 39 || // Right Arrow
-        e.keyCode === 40) { // Down Arrow
+    if (e.keyCode === 37 || // Left Arrow
+      e.keyCode === 38 || // Up Arrow
+      e.keyCode === 39 || // Right Arrow
+      e.keyCode === 40) { // Down Arrow
       return true;
     }
     return false;
