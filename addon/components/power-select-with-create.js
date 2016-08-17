@@ -35,6 +35,19 @@ export default Ember.Component.extend({
 
   // Actions
   actions: {
+    /**
+     * Checks to see if the pressed key is a tab and then auto creates the selected option based
+     * on what the user has already typed into the input.
+     * @param select
+     * @param e
+       */
+    onKeyDown(select, e){
+      if(e && e.keyCode === 9 && typeof(select.highlighted) === 'object'){
+        // needs to be an array because this is multi select
+        select.actions.select([select.highlighted]);
+        select.actions.close();
+      }
+    },
     onInput(input, select){
       // console.info(select);
       // console.info(e);
@@ -157,10 +170,22 @@ export default Ember.Component.extend({
       return newOptions;
     },
 
-    selectOrCreate(selection) {
+    selectOrCreate(selection, select) {
       console.info("Select or create");
+      console.info(selection);
+
+
       let suggestion;
       if (this.get('multiple')) {
+        if(Array.isArray(selection) && selection.length === 0){
+          //select.options.clear();
+          select.results.clear();
+          // If we don't set highlighted to undefined it appears to have a residual value
+          // which means if the user presses enter even when the input is empty a value
+          // shows up
+          Ember.set(select, 'highlighted', undefined);
+        }
+
         suggestion = selection.filter((option) => {
           return option.__isSuggestion__;
         })[0];
