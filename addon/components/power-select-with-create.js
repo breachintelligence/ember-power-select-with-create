@@ -35,63 +35,103 @@ export default Ember.Component.extend({
 
   // Actions
   actions: {
-    typeAndSuggest(select, e){
-
-      if(!this.get('createAsTyping')){
-        return;
-      }
-      
-      // We don't want to do anything if the user is pressing the arrow keys to navigate
-      // the dropdown menu
-      if(this._isArrowKey(e)){
-        return;
-      }
-
+    onInput(input, select){
       // console.info(select);
-      // console.info("SearchText:" + select.searchText);
-      // console.info("KeyCode:" + e.keyCode);
-      // console.info("IsOpen: " + select.isOpen);
-      // console.info(select.highlighted);
-      // if (e.keyCode === 13 && select.isOpen && !Ember.isBlank(select.searchText)) {
-      //   console.info(select.actions);
-      //   console.info("Adding: " + select.searchText);
-      //   select.actions.choose(this.buildSuggestionForTerm(select.searchText));
+      // console.info(e);
+      //
+      // return;
+      //
+      // if(!this.get('createAsTyping')){
       //   return;
       // }
+      //
+      // // We don't want to do anything if the user is pressing the arrow keys to navigate
+      // // the dropdown menu
+      // if(this._isArrowKey(e)){
+      //   return;
+      // }
+      //
+      // console.info(e);
 
-      Ember.run.next(this, function(){
-        let selected = this.get('selected');
-        //console.info(select.searchText);
-
-        if (!selected.includes(select.searchText) && !Ember.isBlank(select.searchText)) {
-          //console.info("Selected does not include searchText");
-          let results = select.results;
-          //console.info(results);
-          let suggestion = this.buildSuggestionForTerm(select.searchText);
-          // console.info("Adding from type: " + select.searchText);
-          // console.info(select);
-          if(results.length !== 0){
-            results.shiftObject();
-          }
-          results.unshiftObject(suggestion);
-          select.actions.highlight(suggestion);
-        }
-
-        if(Ember.isBlank(select.searchText)){
+        console.info(select);
+        console.info("Input:[" + input + "]");
+        if (Ember.isBlank(input)) {
+          console.info("Clearing Results");
+          console.info(select.results);
+          select.options.clear();
           select.results.clear();
           // If we don't set highlighted to undefined it appears to have a residual value
-          // which mean if the user presses enter even when the input is empty a value
-          // show up
+          // which means if the user presses enter even when the input is empty a value
+          // shows up
           Ember.set(select, 'highlighted', undefined);
         }
-      });
+      return true;
+
+
+      //
+      // // The value of searchText always seems to be one key behind unless I wait for next
+      // Ember.run.next(this, function(){
+      //   let selected = this.get('selected');
+      //
+      //   //console.info("SearchText: " + select.searchText);
+      //
+      //
+      //   if (!selected.includes(select.searchText) && !Ember.isBlank(select.searchText)) {
+      //     let results = select.results;
+      //     let suggestion = this.buildSuggestionForTerm(select.searchText);
+      //
+      //     if(results.length !== 0){
+      //       //remove the existing suggestion
+      //       results.shiftObject();
+      //     }
+      //     //add our "suggestion" which is based off what the user has typed and highlight it
+      //     //console.info("Adding Suggestion:");
+      //     //console.info(suggestion);
+      //     results.unshiftObject(suggestion);
+      //     select.actions.highlight(suggestion);
+      //   }
+      //
+      //   if(Ember.isBlank(select.searchText)){
+      //     select.results.clear();
+      //     // If we don't set highlighted to undefined it appears to have a residual value
+      //     // which means if the user presses enter even when the input is empty a value
+      //     // shows up
+      //     Ember.set(select, 'highlighted', undefined);
+      //   }
+      // });
     },
     searchAndSuggest(term, select) {
+      console.info(term);
       let newOptions = this.get('optionsArray');
 
       if (term.length === 0) {
         return newOptions;
       }
+
+
+      //---------------------------
+      let selected = this.get('selected');
+      if (!selected.includes(term) && !Ember.isBlank(term)) {
+        let results = select.results;
+        let suggestion = this.buildSuggestionForTerm(term);
+
+        if (results.length !== 0) {
+          //remove the existing suggestion
+          results.shiftObject();
+        }
+        results.unshiftObject(suggestion);
+        select.actions.highlight(suggestion);
+      }
+
+      if(Ember.isBlank(term)){
+        select.results.clear();
+        // If we don't set highlighted to undefined it appears to have a residual value
+        // which means if the user presses enter even when the input is empty a value
+        // shows up
+        Ember.set(select, 'highlighted', undefined);
+      }
+      //---------------------------
+
 
       if (this.get('search')) {
         return Ember.RSVP.resolve(this.get('search')(term)).then((results) =>  {
